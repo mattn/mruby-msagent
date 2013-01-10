@@ -3,13 +3,8 @@
 #include <ctype.h>
 
 #include <mruby.h>
-//#include <mruby/proc.h>
-//#include <mruby/data.h>
 #include <mruby/string.h>
 #include <mruby/data.h>
-//#include <mruby/array.h>
-//#include <mruby/hash.h>
-//#include <mruby/class.h>
 #include <mruby/variable.h>
 #include <stdio.h>
 
