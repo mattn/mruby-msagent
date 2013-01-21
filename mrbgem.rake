@@ -3,7 +3,7 @@ MRuby::Gem::Specification.new('mruby-msagent') do |spec|
   spec.authors = 'mattn'
  
   if ENV['OS'] == 'Windows_NT'
-    spec.mruby_libs = '-lole32 -loleaut32 -luuid'
+    spec.linker.libraries << ['ole32', 'oleaut32', 'uuid']
   else
     raise "mruby-msagent does not support on non-Windows OSs."
   end
