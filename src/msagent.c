@@ -410,4 +410,9 @@ mrb_mruby_msagent_gem_init(mrb_state* mrb) {
   mrb_define_method(mrb, _class_msagent, "move", mrb_msagent_move, ARGS_REQ(2));
 }
 
+void
+mrb_mruby_msagent_gem_final(mrb_state* mrb) {
+  CoUninitialize();
+}
+
 /* vim:set et ts=2 sts=2 sw=2 tw=0: */
