@@ -38,8 +38,9 @@ static const struct mrb_data_type msagent_type = {
 static BSTR
 utf8_to_bstr(const char* str) {
   DWORD size = MultiByteToWideChar(CP_UTF8, 0, str, -1, NULL, 0);
+  BSTR bs;
   if (size == 0) return NULL;
-  BSTR bs = SysAllocStringLen(NULL, size - 1);
+  bs = SysAllocStringLen(NULL, size - 1);
   MultiByteToWideChar(CP_UTF8, 0, str, -1, bs, size);
   return bs;
 }
@@ -71,12 +72,17 @@ mrb_msagent_init(mrb_state* mrb, mrb_value self) {
   VARIANTARG args[3];
   VARIANT result;
   DISPPARAMS param = {0};
-  param.rgvarg = &args[0];
+  mrb_value charname;
+  mrb_msagent* agent;
+  BSTR name;
+  long char_id = 0;
 
-  mrb_value charname = mrb_nil_value();
   mrb_get_args(mrb, "|S", &charname);
 
-  mrb_msagent* agent = malloc(sizeof(mrb_msagent));
+  charname = mrb_nil_value();
+  mrb_get_args(mrb, "|S", &charname);
+
+  agent = malloc(sizeof(mrb_msagent));
   memset(agent, 0, sizeof(mrb_msagent));
   
   hr = CoCreateInstance( &CLSID_AgentServer, NULL, CLSCTX_SERVER,
@@ -91,9 +97,9 @@ mrb_msagent_init(mrb_state* mrb, mrb_value self) {
     CLSCTX_SERVER,
     &IID_IAgentEx,
     (LPVOID *)&agent->pAgentEx);
-  
+
   // Load
-  BSTR name = SysAllocString(L"Load");
+  name = SysAllocString(L"Load");
   hr = agent->pAgentEx->lpVtbl->GetIDsOfNames(agent->pAgentEx, &IID_NULL,
     &name, 1, LOCALE_SYSTEM_DEFAULT, &dispid);
   SysFreeString(name);
@@ -109,8 +115,6 @@ mrb_msagent_init(mrb_state* mrb, mrb_value self) {
     V_BSTR(&args[2]) = utf8_to_bstr(RSTRING_PTR(charname));
   }
   
-  long char_id = 0;
-
   VariantInit(&args[1]);
   V_VT(&args[1]) = VT_I4 | VT_BYREF;
   V_I4REF(&args[1]) = &char_id;
@@ -118,7 +122,8 @@ mrb_msagent_init(mrb_state* mrb, mrb_value self) {
   VariantInit(&args[0]);
   V_VT(&args[0]) = VT_I4 | VT_BYREF;
   V_I4REF(&args[0]) = &agent->request_id;
-  
+
+  param.rgvarg = &args[0];
   param.cArgs = 3;
   hr = agent->pAgentEx->lpVtbl->Invoke(agent->pAgentEx, dispid, &IID_NULL,
     LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD, &param, &result, NULL, NULL);
@@ -169,18 +174,17 @@ mrb_msagent_show(mrb_state* mrb, mrb_value self) {
   VARIANTARG args[2];
   VARIANT result;
   DISPPARAMS param = {0};
-  param.rgvarg = &args[0];
-
   mrb_value value_context;
   mrb_msagent* agent = NULL;
+  mrb_value with_animation = mrb_true_value();
+  BSTR name;
 
   value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &msagent_type, agent);
 
-  mrb_value with_animation = mrb_true_value();
   mrb_get_args(mrb, "|o", &with_animation);
 
-  BSTR name = SysAllocString(L"Show");
+  name = SysAllocString(L"Show");
   hr = agent->pCharacterEx->lpVtbl->GetIDsOfNames(agent->pCharacterEx,
     &IID_NULL, &name, 1, LOCALE_SYSTEM_DEFAULT, &dispid);
   SysFreeString(name);
@@ -199,6 +203,7 @@ mrb_msagent_show(mrb_state* mrb, mrb_value self) {
   V_VT(&args[0]) = VT_I4 | VT_BYREF;
   V_I4REF(&args[0]) = &agent->request_id;
   
+  param.rgvarg = &args[0];
   param.cArgs = 2;
   hr = agent->pCharacterEx->lpVtbl->Invoke(agent->pCharacterEx, dispid, &IID_NULL,
     LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD, &param, &result,
@@ -217,18 +222,16 @@ mrb_msagent_hide(mrb_state* mrb, mrb_value self) {
   VARIANTARG args[2];
   VARIANT result;
   DISPPARAMS param = {0};
-  param.rgvarg = &args[0];
-
   mrb_value value_context;
   mrb_msagent* agent = NULL;
+  mrb_value with_animation = mrb_true_value();
+  BSTR name;
 
   value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &msagent_type, agent);
 
-  mrb_value with_animation = mrb_true_value();
   mrb_get_args(mrb, "|o", &with_animation);
 
-  BSTR name;
   name = SysAllocString(L"Hide");
   hr = agent->pCharacterEx->lpVtbl->GetIDsOfNames(agent->pCharacterEx,
     &IID_NULL, &name, 1, LOCALE_SYSTEM_DEFAULT, &dispid);
@@ -248,6 +251,7 @@ mrb_msagent_hide(mrb_state* mrb, mrb_value self) {
   V_VT(&args[0]) = VT_I4 | VT_BYREF;
   V_I4REF(&args[0]) = &agent->request_id;
   
+  param.rgvarg = &args[0];
   param.cArgs = 2;
   hr = agent->pCharacterEx->lpVtbl->Invoke(agent->pCharacterEx, dispid, &IID_NULL,
     LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD, &param, &result,
@@ -266,17 +270,17 @@ mrb_msagent_speak(mrb_state* mrb, mrb_value self) {
   VARIANTARG args[3];
   VARIANT result;
   DISPPARAMS param = {0};
-  param.rgvarg = &args[0];
-
   mrb_value value_context;
   mrb_msagent* agent = NULL;
+  mrb_value text;
+  BSTR name;
+
   value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &msagent_type, agent);
 
-  mrb_value text;
   mrb_get_args(mrb, "S", &text);
 
-  BSTR name = SysAllocString(L"Speak");
+  name = SysAllocString(L"Speak");
   hr = agent->pCharacterEx->lpVtbl->GetIDsOfNames(agent->pCharacterEx,
     &IID_NULL, &name, 1, LOCALE_SYSTEM_DEFAULT, &dispid);
   SysFreeString(name);
@@ -296,6 +300,7 @@ mrb_msagent_speak(mrb_state* mrb, mrb_value self) {
   V_VT(&args[0]) = VT_I4 | VT_BYREF;
   V_I4REF(&args[0]) = &agent->request_id;
   
+  param.rgvarg = &args[0];
   param.cArgs = 3;
   hr = agent->pCharacterEx->lpVtbl->Invoke(agent->pCharacterEx, dispid,
     &IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD, &param, &result,
@@ -315,17 +320,17 @@ mrb_msagent_play(mrb_state* mrb, mrb_value self) {
   VARIANTARG args[2];
   VARIANT result;
   DISPPARAMS param = {0};
-  param.rgvarg = &args[0];
-
   mrb_value value_context;
   mrb_msagent* agent = NULL;
+  BSTR name;
+  mrb_value animation;
+
   value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &msagent_type, agent);
 
-  mrb_value animation;
   mrb_get_args(mrb, "S", &animation);
 
-  BSTR name = SysAllocString(L"Play");
+  name = SysAllocString(L"Play");
   hr = agent->pCharacterEx->lpVtbl->GetIDsOfNames(agent->pCharacterEx,
     &IID_NULL, &name, 1, LOCALE_SYSTEM_DEFAULT, &dispid);
   SysFreeString(name);
@@ -341,6 +346,7 @@ mrb_msagent_play(mrb_state* mrb, mrb_value self) {
   V_VT(&args[0]) = VT_I4 | VT_BYREF;
   V_I4REF(&args[0]) = &agent->request_id;
   
+  param.rgvarg = &args[0];
   param.cArgs = 2;
   hr = agent->pCharacterEx->lpVtbl->Invoke(agent->pCharacterEx, dispid,
     &IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD, &param, &result,
@@ -360,17 +366,17 @@ mrb_msagent_move(mrb_state* mrb, mrb_value self) {
   VARIANTARG args[2];
   VARIANT result;
   DISPPARAMS param = {0};
-  param.rgvarg = &args[0];
-
   mrb_value value_context;
   mrb_msagent* agent = NULL;
+  BSTR name;
+  mrb_value x, y;
+
   value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &msagent_type, agent);
 
-  mrb_value x, y;
   mrb_get_args(mrb, "ii", &x, &y);
 
-  BSTR name = SysAllocString(L"SetPosition");
+  name = SysAllocString(L"SetPosition");
   hr = agent->pCharacterEx->lpVtbl->GetIDsOfNames(agent->pCharacterEx,
     &IID_NULL, &name, 1, LOCALE_SYSTEM_DEFAULT, &dispid);
   SysFreeString(name);
@@ -386,6 +392,7 @@ mrb_msagent_move(mrb_state* mrb, mrb_value self) {
   V_VT(&args[0]) = VT_I4;
   V_I4(&args[0]) = mrb_fixnum(y);
   
+  param.rgvarg = &args[0];
   param.cArgs = 2;
   hr = agent->pCharacterEx->lpVtbl->Invoke(agent->pCharacterEx, dispid,
     &IID_NULL, LOCALE_SYSTEM_DEFAULT, DISPATCH_METHOD, &param, &result,
@@ -399,9 +406,11 @@ mrb_msagent_move(mrb_state* mrb, mrb_value self) {
 
 void
 mrb_mruby_msagent_gem_init(mrb_state* mrb) {
+  struct RClass* _class_msagent;
+
   CoInitialize(NULL);
 
-  struct RClass* _class_msagent = mrb_define_class(mrb, "MSAgent", mrb->object_class);
+  _class_msagent = mrb_define_class(mrb, "MSAgent", mrb->object_class);
   mrb_define_method(mrb, _class_msagent, "initialize", mrb_msagent_init, ARGS_REQ(1));
   mrb_define_method(mrb, _class_msagent, "show", mrb_msagent_show, ARGS_OPT(1));
   mrb_define_method(mrb, _class_msagent, "hide", mrb_msagent_hide, ARGS_OPT(1));
