@@ -369,7 +369,7 @@ mrb_msagent_move(mrb_state* mrb, mrb_value self) {
   mrb_value value_context;
   mrb_msagent* agent = NULL;
   BSTR name;
-  mrb_value x, y;
+  mrb_int x, y;
 
   value_context = mrb_iv_get(mrb, self, mrb_intern(mrb, "context"));
   Data_Get_Struct(mrb, value_context, &msagent_type, agent);
@@ -386,11 +386,11 @@ mrb_msagent_move(mrb_state* mrb, mrb_value self) {
 
   VariantInit(&args[1]);
   V_VT(&args[1]) = VT_I4;
-  V_I4(&args[1]) = mrb_fixnum(x);
+  V_I4(&args[1]) = x;
   
   VariantInit(&args[0]);
   V_VT(&args[0]) = VT_I4;
-  V_I4(&args[0]) = mrb_fixnum(y);
+  V_I4(&args[0]) = y;
   
   param.rgvarg = &args[0];
   param.cArgs = 2;
